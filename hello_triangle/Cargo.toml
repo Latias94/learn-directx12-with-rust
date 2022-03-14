@@ -1,0 +1,28 @@
+[package]
+name = "hello_triangle"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[profile.dev]
+opt-level = 1
+debug = 2
+
+[dependencies]
+array-init = "2" # 允许你用一个初始化闭包来初始化数组，每个元素都会被调用一次，直到数组被填满。
+
+[dependencies.windows]
+version = "0.33"
+features = [
+    "alloc",
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D_Fxc",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_System_WindowsProgramming",
+    "Win32_UI_WindowsAndMessaging",
+]
