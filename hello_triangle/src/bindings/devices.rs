@@ -139,7 +139,13 @@ pub fn create_root_signature(device: &ID3D12Device) -> Result<ID3D12RootSignatur
     // Direct3D 12 规定，必须先将根签名的描述布局进行序列化处理（serialize），待其转换为以 ID3DBlob 接口表示的序列化
     // 数据格式后，才可将它传入 CreateRootSignature 方法，正式创建根签名。
     unsafe {
-        device.CreateRootSignature(0, signature.GetBufferPointer(), signature.GetBufferSize())
+        device.CreateRootSignature(
+            0,
+            std::slice::from_raw_parts(
+                signature.GetBufferPointer() as _,
+                signature.GetBufferSize(),
+            ),
+        )
     }
 }
 

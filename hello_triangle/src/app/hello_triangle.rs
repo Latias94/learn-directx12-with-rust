@@ -233,7 +233,7 @@ impl DXSample for Sample {
             unsafe {
                 resources
                     .command_queue
-                    .ExecuteCommandLists(1, &Some(command_list))
+                    .ExecuteCommandLists(&[Some(command_list)])
             };
 
             // Present the frame.
@@ -271,11 +271,11 @@ fn populate_command_list(resources: &Resources) -> Result<()> {
         command_list.SetGraphicsRootSignature(&resources.root_signature);
         // 设置一个视口，将场景绘至整个后台缓冲区
         // 第一个参数是要绑定的视口数量（有些高级效果需要使用多个视口），第二个参数是一个指向视口数组的指针。
-        command_list.RSSetViewports(1, &resources.viewport);
+        command_list.RSSetViewports(&[resources.viewport]);
         // 设置裁剪矩形。
         // 类似于 RSSetViewports 方法，RSSetScissorRects 方法的第一个参数是要绑定的裁剪矩形数
         // 量（为了实现一些高级效果有时会采用多个裁剪矩形），第二个参数是指向一个裁剪矩形数组的指针。
-        command_list.RSSetScissorRects(1, &resources.scissor_rect);
+        command_list.RSSetScissorRects(&[resources.scissor_rect]);
     }
 
     // Indicate that the back buffer will be used as a render target.
@@ -285,7 +285,7 @@ fn populate_command_list(resources: &Resources) -> Result<()> {
         D3D12_RESOURCE_STATE_PRESENT,
         D3D12_RESOURCE_STATE_RENDER_TARGET,
     );
-    unsafe { command_list.ResourceBarrier(1, &barrier) };
+    unsafe { command_list.ResourceBarrier(&[barrier]) };
 
     // 从描述符堆中获取描述符
     let rtv_handle = D3D12_CPU_DESCRIPTOR_HANDLE {
@@ -303,13 +303,12 @@ fn populate_command_list(resources: &Resources) -> Result<()> {
         command_list.ClearRenderTargetView(
             rtv_handle,
             [0.0, 0.2, 0.4, 1.0].as_ptr(),
-            0,
-            std::ptr::null(),
+            &[],
         );
         command_list.IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         // 在顶点缓冲区及其对应视图创建完成后，便可以将它与渲染流水线上的一个输入槽（input slot）相绑定。
         // 这样一来，我们就能向流水线中的输入装配器阶段传递顶点数据了。
-        command_list.IASetVertexBuffers(0, 1, &resources.vbv);
+        command_list.IASetVertexBuffers(0, &[resources.vbv]);
         // 将顶点缓冲区设置到输入槽上并不会对其执行实际的绘制操作，而是仅为顶点数据送至渲染流水线做好准备而已。
         // 这最后一步才是通过 ID3D12GraphicsCommandList::DrawInstanced 方法真正地绘制顶点。
         // 1. VertexCountPerInstance：每个实例要绘制的顶点数量。
@@ -321,12 +320,11 @@ fn populate_command_list(resources: &Resources) -> Result<()> {
 
         // Indicate that the back buffer will now be used to present.
         command_list.ResourceBarrier(
-            1,
-            &transition_barrier(
+            &[transition_barrier(
                 &resources.render_targets[resources.frame_index as usize],
                 D3D12_RESOURCE_STATE_RENDER_TARGET,
                 D3D12_RESOURCE_STATE_PRESENT,
-            ),
+            )],
         );
     }
 

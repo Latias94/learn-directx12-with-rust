@@ -12,7 +12,7 @@ debug = 2
 array-init = "2" # 允许你用一个初始化闭包来初始化数组，每个元素都会被调用一次，直到数组被填满。
 
 [dependencies.windows]
-version = "0.33"
+version = "0.34"
 features = [
     "alloc",
     "Win32_Foundation",
