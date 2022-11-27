@@ -26,7 +26,7 @@ pub trait DXSample {
 }
 
 pub fn init_sample<S: DXSample>() -> Result<()> {
-    let instance = unsafe { GetModuleHandleA(None) };
+    let instance = unsafe { GetModuleHandleA(None) }.unwrap();
     debug_assert!(!instance.is_invalid());
     // // 第一项任务便是通过填写 WNDCLASS 结构体，并根据其中描述的特征来创建一个窗口
     let wc = WNDCLASSEXA {
@@ -36,7 +36,7 @@ pub fn init_sample<S: DXSample>() -> Result<()> {
         style: CS_HREDRAW | CS_VREDRAW,
         lpfnWndProc: Some(wndproc::<S>),
         hInstance: instance,
-        hCursor: unsafe { LoadCursorW(None, IDC_ARROW) },
+        hCursor: unsafe { LoadCursorW(None, IDC_ARROW)? },
         lpszClassName: PCSTR(b"RustWindowClass\0".as_ptr()),
         ..Default::default()
     };
@@ -62,8 +62,8 @@ pub fn init_sample<S: DXSample>() -> Result<()> {
     let hwnd = unsafe {
         CreateWindowExA(
             Default::default(),
-            "RustWindowClass", // 创建此窗口采用的是前面注册的 WNDCLASS 实例
-            title,
+            s!("RustWindowClass"), // 创建此窗口采用的是前面注册的 WNDCLASS 实例
+            PCSTR(title.as_ptr()),
             WS_OVERLAPPEDWINDOW,                  // 窗口的样式标志
             CW_USEDEFAULT,                        // x 坐标
             CW_USEDEFAULT,                        // y 坐标
@@ -72,10 +72,9 @@ pub fn init_sample<S: DXSample>() -> Result<()> {
             None,                                 // no parent window
             None,                                 // no menus
             instance,                             // 应用程序实例句柄
-            &mut sample as *mut _ as _,           // 可在此设置一些创建窗口所用的其他参数
+            Some(&mut sample as *mut _ as _),     // 可在此设置一些创建窗口所用的其他参数
         )
     };
-    debug_assert!(!&hwnd.is_invalid());
 
     sample.bind_to_window(&hwnd)?;
 

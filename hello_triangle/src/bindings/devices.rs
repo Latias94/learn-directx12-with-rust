@@ -31,7 +31,7 @@ pub fn create_device(command_line: &SampleCommandLine) -> Result<(IDXGIFactory4,
 
     // 指定在创建设备时所用的显示适配器。若将此参数设定为空指针，则使用主显示适配器。
     // 我们在本书的示例中总是采用主适配器。在 4.1.10 节中，我们已展示了怎样枚举系统中所有的显示适配器。
-    unsafe { D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, &mut device) }?;
+    unsafe { D3D12CreateDevice(&adapter, D3D_FEATURE_LEVEL_11_0, &mut device) }?;
     // 调用 D3D12CreateDevice 失败后，程序将回退到一种软件适配器：WARP 设备。
     // if !command_line.use_warp_device && device.is_none() {
     //     adapter = unsafe { dxgi_factory.EnumWarpAdapter() }?;
@@ -127,12 +127,7 @@ pub fn create_root_signature(device: &ID3D12Device) -> Result<ID3D12RootSignatur
     let mut signature = None;
 
     let signature = unsafe {
-        D3D12SerializeRootSignature(
-            &desc,
-            D3D_ROOT_SIGNATURE_VERSION_1,
-            &mut signature,
-            std::ptr::null_mut(),
-        )
+        D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &mut signature, None)
     }
     .map(|()| signature.unwrap())?;
 
@@ -173,19 +168,19 @@ pub fn create_pipeline_state(
     let asset_path = exe_path.parent().unwrap();
     let shaders_hlsl_path = asset_path.join("shaders.hlsl");
     let shaders_hlsl = shaders_hlsl_path.to_str().unwrap();
-
+    let shaders_hlsl: HSTRING = shaders_hlsl.into();
     let mut vertex_shader = None;
     let vertex_shader = unsafe {
         D3DCompileFromFile(
-            shaders_hlsl,
-            std::ptr::null(),
+            &shaders_hlsl,
             None,
-            "VSMain",
-            "vs_5_0",
+            None,
+            s!("VSMain"),
+            s!("vs_5_0"),
             compile_flags,
             0,
             &mut vertex_shader,
-            std::ptr::null_mut(),
+            None,
         )
     }
     .map(|()| vertex_shader.unwrap())?;
@@ -193,15 +188,15 @@ pub fn create_pipeline_state(
     let mut pixel_shader = None;
     let pixel_shader = unsafe {
         D3DCompileFromFile(
-            shaders_hlsl,
-            std::ptr::null(),
+            &shaders_hlsl,
             None,
-            "PSMain",
-            "ps_5_0",
+            None,
+            s!("PSMain"),
+            s!("ps_5_0"),
             compile_flags,
             0,
             &mut pixel_shader,
-            std::ptr::null_mut(),
+            None,
         )
     }
     .map(|()| pixel_shader.unwrap())?;

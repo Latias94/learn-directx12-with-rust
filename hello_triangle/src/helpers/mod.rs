@@ -11,5 +11,3 @@ pub fn wstrlens(pwstr: &[u16]) -> usize {
     }
     len
 }
-
-

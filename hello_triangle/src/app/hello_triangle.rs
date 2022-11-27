@@ -92,9 +92,9 @@ impl DXSample for Sample {
         let swap_chain: IDXGISwapChain3 = unsafe {
             self.dxgi_factory.CreateSwapChainForHwnd(
                 &command_queue,
-                hwnd,
+                *hwnd,
                 &swap_chain_desc,
-                std::ptr::null(),
+                None,
                 None,
             )?
         }
@@ -103,7 +103,7 @@ impl DXSample for Sample {
         // This sample does not support fullscreen transitions
         unsafe {
             self.dxgi_factory
-                .MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER)?;
+                .MakeWindowAssociation(*hwnd, DXGI_MWA_NO_ALT_ENTER)?;
         }
         // 用来记录当前后台缓冲区的索引（由于利用页面翻转技术来交换前台缓冲区和后台缓冲区，
         // 所以我们需要对其进行记录，以便搞清楚哪个缓冲区才是当前正在用于渲染数据的后台缓冲区）。
@@ -142,9 +142,9 @@ impl DXSample for Sample {
                         // 如果该资源在创建时已指定了具体格式（即此资源不是无类型格式，not typeless），那么就可以把这个参数设为空指针，
                         // 表示采用该资源创建时的格式，为它的第一个 mipmap 层级（后台缓冲区只有一种 mipmap 层级，
                         // 有关 mipmap 的内容将在第 9 章展开讨论）创建一个视图。由于已经指定了后台缓冲区的格式，因此就将这个参数设置为空指针。
-                        std::ptr::null(),
+                        None,
                         // 引用所创建渲染目标视图的描述符句柄
-                        &D3D12_CPU_DESCRIPTOR_HANDLE {
+                        D3D12_CPU_DESCRIPTOR_HANDLE {
                             ptr: rtv_handle.ptr + i * rtv_descriptor_size,
                         },
                     )
@@ -196,7 +196,7 @@ impl DXSample for Sample {
 
         let fence_value = 1;
 
-        let fence_event = unsafe { CreateEventA(std::ptr::null(), false, false, None) };
+        let fence_event = unsafe { CreateEventA(None, false, false, None)? };
 
         self.resources = Some(Resources {
             command_queue,
@@ -295,20 +295,16 @@ fn populate_command_list(resources: &Resources) -> Result<()> {
             + resources.frame_index as usize * resources.rtv_descriptor_size,
     };
     // 指定将要渲染的缓冲区
-    unsafe { command_list.OMSetRenderTargets(1, &rtv_handle, false, std::ptr::null()) };
+    unsafe { command_list.OMSetRenderTargets(1, Some(&rtv_handle), false, None) };
 
     // Record commands.
     unsafe {
         // 清除后台缓冲区
-        command_list.ClearRenderTargetView(
-            rtv_handle,
-            [0.0, 0.2, 0.4, 1.0].as_ptr(),
-            &[],
-        );
+        command_list.ClearRenderTargetView(rtv_handle, [0.0, 0.2, 0.4, 1.0].as_ptr(), &[]);
         command_list.IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         // 在顶点缓冲区及其对应视图创建完成后，便可以将它与渲染流水线上的一个输入槽（input slot）相绑定。
         // 这样一来，我们就能向流水线中的输入装配器阶段传递顶点数据了。
-        command_list.IASetVertexBuffers(0, &[resources.vbv]);
+        command_list.IASetVertexBuffers(0, Some(&[resources.vbv]));
         // 将顶点缓冲区设置到输入槽上并不会对其执行实际的绘制操作，而是仅为顶点数据送至渲染流水线做好准备而已。
         // 这最后一步才是通过 ID3D12GraphicsCommandList::DrawInstanced 方法真正地绘制顶点。
         // 1. VertexCountPerInstance：每个实例要绘制的顶点数量。
@@ -319,13 +315,11 @@ fn populate_command_list(resources: &Resources) -> Result<()> {
         command_list.DrawInstanced(3, 1, 0, 0);
 
         // Indicate that the back buffer will now be used to present.
-        command_list.ResourceBarrier(
-            &[transition_barrier(
-                &resources.render_targets[resources.frame_index as usize],
-                D3D12_RESOURCE_STATE_RENDER_TARGET,
-                D3D12_RESOURCE_STATE_PRESENT,
-            )],
-        );
+        command_list.ResourceBarrier(&[transition_barrier(
+            &resources.render_targets[resources.frame_index as usize],
+            D3D12_RESOURCE_STATE_RENDER_TARGET,
+            D3D12_RESOURCE_STATE_PRESENT,
+        )]);
     }
 
     unsafe { command_list.Close() }
@@ -407,7 +401,7 @@ fn create_vertex_buffer(
                 ..Default::default()
             },
             D3D12_RESOURCE_STATE_GENERIC_READ,
-            std::ptr::null(),
+            None,
             &mut vertex_buffer,
         )?
     };
@@ -416,13 +410,13 @@ fn create_vertex_buffer(
     // Copy the triangle data to the vertex buffer.
     unsafe {
         let mut data = std::ptr::null_mut();
-        vertex_buffer.Map(0, std::ptr::null(), &mut data)?;
+        vertex_buffer.Map(0, None, Some(&mut data))?;
         std::ptr::copy_nonoverlapping(
             vertices.as_ptr(),
             data as *mut Vertex,
             std::mem::size_of_val(&vertices),
         );
-        vertex_buffer.Unmap(0, std::ptr::null());
+        vertex_buffer.Unmap(0, None);
     }
 
     let vbv = D3D12_VERTEX_BUFFER_VIEW {
